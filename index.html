@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b0b14"><title>Nova AI — Image Studio</title>
+<style>
+:root{color-scheme:dark;--bg:#0b0b14;--panel:#171725;--line:#303047;--txt:#f8f7ff;--muted:#aaa8c2;--a:#b7a3ff}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#29204b 0,#0b0b14 58%);color:var(--txt);font:16px system-ui,-apple-system,Segoe UI,sans-serif;min-height:100vh}main{max-width:850px;margin:auto;padding:20px 14px 48px}.brand{display:flex;align-items:center;gap:12px;margin:8px 0 28px}.logo{width:46px;height:46px;border-radius:15px;background:linear-gradient(135deg,#d3c6ff,#8067f1);display:grid;place-items:center;color:#171329;font-size:25px;font-weight:900}.brandname{font-size:22px;font-weight:850}.muted{color:var(--muted);line-height:1.5}.pill{display:inline-block;background:#29213f;color:#ddd2ff;padding:6px 11px;border-radius:30px;font-size:12px;font-weight:750}h1{font-size:clamp(30px,7vw,45px);line-height:1.08;margin:15px 0 10px}.card{background:#171725ee;border:1px solid var(--line);border-radius:20px;padding:17px;margin:18px 0;box-shadow:0 12px 36px #0003}label{display:block;font-size:14px;font-weight:700;margin:14px 0 8px}textarea,select{width:100%;border:1px solid #393950;background:#0e0e19;color:var(--txt);border-radius:12px;padding:13px;font:inherit}textarea{min-height:120px;resize:vertical}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}button,.linkbtn{border:0;border-radius:13px;padding:13px 16px;font:inherit;font-weight:800;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}.primary{width:100%;margin-top:15px;background:linear-gradient(135deg,#c6b5ff,#8872f5);color:#18132b}.secondary{background:#25253a;color:#fff;border:1px solid #3a3a53}.status{font-size:13px;color:#d0c8f2;white-space:pre-wrap;margin-top:12px}.result{display:none}.result img{width:100%;max-height:75vh;object-fit:contain;border-radius:14px;background:#0d0d17}.actions{display:flex;gap:10px;margin-top:12px}.actions>*{flex:1}.small{font-size:12px;color:#9693ad}.notice{background:#10101b;border:1px solid #2d2d41;border-radius:12px;padding:12px;font-size:13px;color:#c5c2d8;line-height:1.5}@media(max-width:540px){.grid{grid-template-columns:1fr}.card{padding:14px}.actions{flex-direction:column}}
+</style></head>
+<body><main>
+<header class="brand"><div class="logo">N</div><div><div class="brandname">NOVA AI</div><div class="small">Image Studio · HopWeb-friendly UI</div></div></header>
+<span class="pill">AI IMAGE GENERATOR</span><h1>Imagine it.<br>Make it real.</h1>
+<p class="muted">Apna idea likho aur image generate karo. Image ready hone par phone mein save kar sakte ho.</p>
+<section class="card">
+<label for="prompt">Image ka idea likho</label><textarea id="prompt" maxlength="1200" placeholder="A futuristic Indian city at sunset, cinematic light, highly detailed..."></textarea>
+<div class="grid"><div><label for="model">Model</label><select id="model"><option value="flux">Flux</option><option value="zimage">Z-Image</option></select></div><div><label for="size">Image size</label><select id="size"><option value="1024">1024 × 1024</option><option value="768">768 × 768</option><option value="512">512 × 512</option></select></div></div>
+<button class="primary" id="generate">✦ Generate Image</button><div id="status" class="status">Ready. Backend connect hone par image generation chalegi.</div>
+</section>
+<section class="card result" id="result"><label>Your image</label><img id="image" alt="AI generated image"><div class="actions"><a class="linkbtn secondary" id="download" download="nova-ai-image.png">Download image</a><button class="secondary" id="again">New prompt</button></div></section>
+<section class="card"><b>Connection status</b><p id="health" class="muted">Checking backend…</p><div class="notice">API key ko server ki environment settings mein rakhein, HTML mein nahi. Provider ke free limits badal sakte hain; unlimited free generation ki guarantee nahi hai.</div></section>
+<footer class="small">Nova AI · Independent project</footer>
+</main>
+<script>
+const $=id=>document.getElementById(id);let blobUrl='';
+async function health(){try{const r=await fetch('/api/health');const d=await r.json();$('health').textContent=d.ok?'Backend online. '+(d.configured?'Image provider configured.':'Provider API key abhi server par set nahi hai.'):'Backend response error.'}catch(e){$('health').textContent='Backend connect nahi hua. Is HTML ko sirf local file se kholne par API kaam nahi karegi; Node backend ko deploy/run karna hoga.'}}
+health();
+$('generate').onclick=async()=>{const prompt=$('prompt').value.trim();if(!prompt){$('status').textContent='Pehle prompt likho.';return}const b=$('generate');b.disabled=true;$('result').style.display='none';$('status').textContent='Image generate ho rahi hai…';
+try{const r=await fetch('/api/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt,model:$('model').value,size:Number($('size').value)})});if(!r.ok){let msg='Server error ('+r.status+')';try{const j=await r.json();if(j.error)msg=j.error}catch(e){}throw Error(msg)}const blob=await r.blob();if(!blob.type.startsWith('image/'))throw Error('Image response nahi mila');if(blobUrl)URL.revokeObjectURL(blobUrl);blobUrl=URL.createObjectURL(blob);$('image').src=blobUrl;$('download').href=blobUrl;$('result').style.display='block';$('status').textContent='Image ready! Download image par tap karo.';$('result').scrollIntoView({behavior:'smooth'})}
+catch(e){$('status').textContent='Image generate nahi hui: '+e.message+'\nBackend URL, server API key aur provider/model access check karna hoga.'}finally{b.disabled=false}};
+$('again').onclick=()=>{window.scrollTo({top:0,behavior:'smooth'});$('prompt').focus()};
+</script></body></html>
